@@ -60,8 +60,14 @@ class WorkoutLogEntryCard extends StatelessWidget {
         contentPadding: EdgeInsets.symmetric(horizontal: 10),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(entry.workoutName),
+            SizedBox(width: 5),
+            Expanded(
+              child: Text(entry.workoutName, style: TextStyle(
+                fontWeight: FontWeight.bold
+              ),),
+            ),
             IconButton(
               onPressed: () {
                 workoutLogProvider.deleteEntry(entry);
@@ -73,19 +79,24 @@ class WorkoutLogEntryCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextButton(
-                onPressed: () {
-                  workoutLogProvider.addWarmUpRow(
-                      entry, WarmUpRow(weight: 0, reps: 0));
-                },
-                child: Text(
-                  "+ Warm Up",
-                  style: TextStyle(
-                    color: Color(0xFFc77f7b),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                )),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextButton(
+                    onPressed: () {
+                      workoutLogProvider.addWarmUpRow(
+                          entry, WarmUpRow(weight: 0, reps: 0));
+                    },
+                    child: Text(
+                      "+ Warm Up",
+                      style: TextStyle(
+                        color: Color(0xFFc77f7b),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    )),
+              ],
+            ),
             Divider(
               color: Colors.black,
               height: 1.0,
@@ -210,6 +221,7 @@ class WarmUpList extends StatelessWidget {
                             ),
                             initialValue: warmUpRow.weight.toString(),
                             keyboardType: TextInputType.number,
+                            textAlign: TextAlign.right,
                             onChanged: (value) {
                               Provider.of<WorkoutLogProvider>(context,
                                       listen: false)
@@ -227,6 +239,7 @@ class WarmUpList extends StatelessWidget {
                             ),
                             initialValue: warmUpRow.reps.toString(),
                             keyboardType: TextInputType.number,
+                            textAlign: TextAlign.right,
                             onChanged: (value) {
                               Provider.of<WorkoutLogProvider>(context,
                                       listen: false)
@@ -341,6 +354,7 @@ class SetList extends StatelessWidget {
                             ),
                             initialValue: setRow.weight.toString(),
                             keyboardType: TextInputType.number,
+                            textAlign: TextAlign.right,
                             onChanged: (value) {
                               Provider.of<WorkoutLogProvider>(context,
                                       listen: false)
@@ -358,6 +372,7 @@ class SetList extends StatelessWidget {
                             ),
                             initialValue: setRow.reps.toString(),
                             keyboardType: TextInputType.number,
+                            textAlign: TextAlign.right,
                             onChanged: (value) {
                               Provider.of<WorkoutLogProvider>(context,
                                       listen: false)
