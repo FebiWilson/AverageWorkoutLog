@@ -60,7 +60,6 @@ class WorkoutLogEntryCard extends StatelessWidget {
         contentPadding: EdgeInsets.symmetric(horizontal: 10),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(width: 5),
             Expanded(
