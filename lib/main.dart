@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+
 void main() {
-  runApp(const MyApp());
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (_) => WorkoutLogProvider()),
+  ], child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => WorkoutLogProvider(),
-      child: MaterialApp(
-        title: 'Workout Log',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home: WorkoutLogScreen(),
+    return MaterialApp(
+      title: 'Workout Log',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.dark().copyWith(background: Colors.black),
       ),
+      home: WorkoutLogScreen(),
     );
   }
 }
@@ -39,23 +41,8 @@ class WorkoutLogScreen extends StatelessWidget {
             itemCount: workoutEntries.length,
             itemBuilder: (context, index) {
               final entry = workoutEntries[index];
-              return Dismissible(
-                key: Key(entry.id.toString()),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  color: Colors.red,
-                  child: const Icon(
-                    Icons.delete,
-                    color: Colors.white,
-                  ),
-                ),
-                onDismissed: (direction) {
-                  Provider.of<WorkoutLogProvider>(context, listen: false)
-                      .deleteEntry(entry);
-                },
-                child: WorkoutLogEntryCard(entry: entry),
+              return WorkoutLogEntryCard(
+                entry: entry,
               );
             },
           );
@@ -82,20 +69,62 @@ class WorkoutLogEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final workoutLogProvider = Provider.of<WorkoutLogProvider>(context);
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      color: Color.fromARGB(193, 13, 13, 71),
       child: ListTile(
-        title: Text(entry.workoutName),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(entry.workoutName),
+            IconButton(
+              onPressed: () {
+                workoutLogProvider.deleteEntry(entry);
+              },
+              icon: Icon(Icons.delete),
+            ),
+          ],
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Warm-up', style: TextStyle(fontWeight: FontWeight.bold)),
+            TextButton(
+                onPressed: () {
+                  workoutLogProvider.addWarmUpRow(
+                      entry, WarmUpRow(weight: 0, reps: 0));
+                },
+                child: Text(
+                  "+ Warm Up",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                )),
             SizedBox(height: 8.0),
-            WarmUpList(warmUpRows: entry.warmUpRows),
+            WarmUpList(
+              warmUpRows: entry.warmUpRows,
+              entry: entry,
+            ),
             SizedBox(height: 8.0),
-            Text('Sets', style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 8.0),
             SetList(setRows: entry.setRows, entry: entry),
+            TextButton(
+                onPressed: () {
+                  workoutLogProvider.addSetRow(
+                      entry,
+                      SetRow(
+                          weight: 0, reps: 0, setNumber: entry.setRows.length+1));
+                },
+                child: Text(
+                  "+ Set",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                )),
           ],
         ),
       ),
@@ -104,10 +133,10 @@ class WorkoutLogEntryCard extends StatelessWidget {
 }
 
 class WarmUpList extends StatelessWidget {
-  final List<String> warmUpRows;
+  final List<WarmUpRow> warmUpRows;
+  final WorkoutLogEntry entry;
 
-  WarmUpList({required this.warmUpRows});
-
+  WarmUpList({required this.warmUpRows, required this.entry});
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -115,9 +144,69 @@ class WarmUpList extends StatelessWidget {
       physics: NeverScrollableScrollPhysics(),
       itemCount: warmUpRows.length,
       itemBuilder: (context, index) {
-        return ListTile(
-          leading: Icon(Icons.person),
-          title: Text(warmUpRows[index]),
+        final warmUpRow = warmUpRows[index];
+        return Slidable(
+          actionPane: SlidableDrawerActionPane(),
+          key: Key('setRow_$index'),
+          dismissal: SlidableDismissal(
+            child: SlidableDrawerDismissal(),
+            onDismissed: (actionType) {
+              // Handle delete action for the set row
+              Provider.of<WorkoutLogProvider>(context, listen: false)
+                  .deleteWarmUpRow(entry, warmUpRow);
+            },
+            dismissThresholds: <SlideActionType, double>{
+              SlideActionType.secondary: 1.0,
+            },
+            onWillDismiss: (actionType) {
+              return false; // Prevent dismissal
+            },
+          ),
+          secondaryActions: [
+            IconSlideAction(
+              caption: 'Delete',
+              color: Colors.red,
+              icon: Icons.delete,
+              onTap: () {
+                // Handle delete action for the set row
+                Provider.of<WorkoutLogProvider>(context, listen: false)
+                    .deleteWarmUpRow(entry, warmUpRow);
+              },
+            ),
+          ],
+          child: ListTile(
+            leading: Icon(Icons.person),
+            title: Row(
+              children: [
+                const Text('Weight: '),
+                SizedBox(width: 8.0),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: warmUpRow.weight.toString(),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      Provider.of<WorkoutLogProvider>(context, listen: false)
+                          .updateWarmUpWeight(
+                              entry, warmUpRow, double.parse(value));
+                    },
+                  ),
+                ),
+                SizedBox(width: 16.0),
+                Text('Reps: '),
+                SizedBox(width: 8.0),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: warmUpRow.reps.toString(),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      Provider.of<WorkoutLogProvider>(context, listen: false)
+                          .updateWarmUpReps(entry, warmUpRow, int.parse(value));
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -126,7 +215,7 @@ class WarmUpList extends StatelessWidget {
 
 class SetList extends StatelessWidget {
   final List<SetRow> setRows;
-  final WorkoutLogEntry entry; // Add this line
+  final WorkoutLogEntry entry;
 
   SetList({required this.setRows, required this.entry});
 
@@ -138,37 +227,67 @@ class SetList extends StatelessWidget {
       itemCount: setRows.length,
       itemBuilder: (context, index) {
         final setRow = setRows[index];
-        return ListTile(
-          leading: Text('Set ${setRow.setNumber}'),
-          title: Row(
-            children: [
-              Text('Weight: '),
-              SizedBox(width: 8.0),
-              Expanded(
-                child: TextFormField(
-                  initialValue: setRow.weight.toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    Provider.of<WorkoutLogProvider>(context, listen: false)
-                        .updateWeight(entry, setRow, double.parse(value));
-                  },
-                ),
-              ),
-              SizedBox(width: 16.0),
-              Text('Reps: '),
-              SizedBox(width: 8.0),
-              Expanded(
-                child: TextFormField(
-                  initialValue: setRow.reps.toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    Provider.of<WorkoutLogProvider>(context, listen: false)
-                        .updateReps(entry, setRow, int.parse(value));
-                  },
-                ),
-              ),
-            ],
+        return Slidable(
+          actionPane: SlidableDrawerActionPane(),
+          key: Key('setRow_$index'),
+          dismissal: SlidableDismissal(
+            child: SlidableDrawerDismissal(),
+            onDismissed: (actionType) {
+              // Handle delete action for the set row
+              Provider.of<WorkoutLogProvider>(context, listen: false)
+                  .deleteSetRow(entry, setRow);
+            },
+            dismissThresholds: <SlideActionType, double>{
+              SlideActionType.secondary: 1.0,
+            },
+            onWillDismiss: (actionType) {
+              return false; // Prevent dismissal
+            },
           ),
+          child: ListTile(
+            leading: Text('Set ${setRow.setNumber}'),
+            title: Row(
+              children: [
+                Text('Weight: '),
+                SizedBox(width: 8.0),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: setRow.weight.toString(),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      Provider.of<WorkoutLogProvider>(context, listen: false)
+                          .updateWeight(entry, setRow, double.parse(value));
+                    },
+                  ),
+                ),
+                SizedBox(width: 16.0),
+                Text('Reps: '),
+                SizedBox(width: 8.0),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: setRow.reps.toString(),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      Provider.of<WorkoutLogProvider>(context, listen: false)
+                          .updateReps(entry, setRow, int.parse(value));
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          secondaryActions: [
+            IconSlideAction(
+              caption: 'Delete',
+              color: Colors.red,
+              icon: Icons.delete,
+              onTap: () {
+                // Handle delete action for the set row
+                Provider.of<WorkoutLogProvider>(context, listen: false)
+                    .deleteSetRow(entry, setRow);
+              },
+            ),
+          ],
         );
       },
     );
@@ -182,12 +301,23 @@ class AddWorkoutDialog extends StatefulWidget {
 
 class _AddWorkoutDialogState extends State<AddWorkoutDialog> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _workoutNameController = TextEditingController();
-  final TextEditingController _warmUpController = TextEditingController();
-  final TextEditingController _setController = TextEditingController();
+  TextEditingController _workoutNameController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    _workoutNameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _workoutNameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final workoutLogProvider = Provider.of<WorkoutLogProvider>(context);
+
     return AlertDialog(
       title: Text('Add Workout Log Entry'),
       content: Form(
@@ -201,26 +331,6 @@ class _AddWorkoutDialogState extends State<AddWorkoutDialog> {
               validator: (value) {
                 if (value!.isEmpty) {
                   return 'Please enter a workout name.';
-                }
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _warmUpController,
-              decoration: InputDecoration(labelText: 'Warm-up'),
-              validator: (value) {
-                if (value!.isEmpty) {
-                  return 'Please enter warm-up details.';
-                }
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _setController,
-              decoration: InputDecoration(labelText: 'Sets'),
-              validator: (value) {
-                if (value!.isEmpty) {
-                  return 'Please enter set details.';
                 }
                 return null;
               },
@@ -239,17 +349,16 @@ class _AddWorkoutDialogState extends State<AddWorkoutDialog> {
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               final newEntry = WorkoutLogEntry(
-                id: WorkoutLogEntry.generateID() as int,
+                id: WorkoutLogEntry.generateID(),
                 workoutName: _workoutNameController.text,
-                warmUpRows: [_warmUpController.text],
-                setRows: [SetRow(setNumber: 1, weight: 0.0, reps: 0)],
+                warmUpRows: [],
+                setRows: [],
               );
-              Provider.of<WorkoutLogProvider>(context, listen: false)
-                  .addEntry(newEntry);
+              workoutLogProvider.addEntry(newEntry);
               Navigator.pop(context);
             }
           },
-          child: Text('Add'),
+          child: const Text('Add'),
         ),
       ],
     );
@@ -259,17 +368,14 @@ class _AddWorkoutDialogState extends State<AddWorkoutDialog> {
 class WorkoutLogEntry {
   final int id;
   final String workoutName;
-  final List<String> warmUpRows;
-  final List<SetRow> setRows;
-  
-
-static String generateID() {
-  final now = DateTime.now();
-  final formatter = DateFormat('yyyyMMddHHmmss');
-  final timestamp = formatter.format(now);
-  return timestamp;
-}
-
+  List<WarmUpRow> warmUpRows = [];
+  List<SetRow> setRows = [];
+  static int generateID() {
+    final now = DateTime.now();
+    final formatter = DateFormat('yyyyMMddHHmmss');
+    final timestamp = formatter.format(now);
+    return int.parse(timestamp);
+  }
 
   WorkoutLogEntry({
     required this.id,
@@ -291,12 +397,25 @@ class SetRow {
   });
 }
 
+class WarmUpRow {
+  double weight;
+  int reps;
+
+  WarmUpRow({
+    required this.weight,
+    required this.reps,
+  });
+}
+
 class WorkoutLogProvider with ChangeNotifier {
   List<WorkoutLogEntry> workoutEntries = [
     WorkoutLogEntry(
       id: 1,
       workoutName: 'Overhead press',
-      warmUpRows: ['Warm-up 1', 'Warm-up 2'],
+      warmUpRows: [
+        WarmUpRow(weight: 50.0, reps: 10),
+        WarmUpRow(weight: 60.0, reps: 8),
+      ],
       setRows: [
         SetRow(setNumber: 1, weight: 50.0, reps: 10),
         SetRow(setNumber: 2, weight: 60.0, reps: 8),
@@ -305,7 +424,10 @@ class WorkoutLogProvider with ChangeNotifier {
     WorkoutLogEntry(
       id: 2,
       workoutName: 'Barbell squat',
-      warmUpRows: ['Warm-up 1', 'Warm-up 2'],
+      warmUpRows: [
+        WarmUpRow(weight: 100.0, reps: 10),
+        WarmUpRow(weight: 120.0, reps: 8),
+      ],
       setRows: [
         SetRow(setNumber: 1, weight: 100.0, reps: 10),
         SetRow(setNumber: 2, weight: 120.0, reps: 8),
@@ -314,7 +436,10 @@ class WorkoutLogProvider with ChangeNotifier {
     WorkoutLogEntry(
       id: 3,
       workoutName: 'Bench Press',
-      warmUpRows: ['Warm-up 1', 'Warm-up 2'],
+      warmUpRows: [
+        WarmUpRow(weight: 80.0, reps: 10),
+        WarmUpRow(weight: 90.0, reps: 8),
+      ],
       setRows: [
         SetRow(setNumber: 1, weight: 80.0, reps: 10),
         SetRow(setNumber: 2, weight: 90.0, reps: 8),
@@ -339,6 +464,37 @@ class WorkoutLogProvider with ChangeNotifier {
 
   void updateReps(WorkoutLogEntry entry, SetRow setRow, int reps) {
     setRow.reps = reps;
+    notifyListeners();
+  }
+
+  void updateWarmUpWeight(
+      WorkoutLogEntry entry, WarmUpRow setRow, double weight) {
+    setRow.weight = weight;
+    notifyListeners();
+  }
+
+  void updateWarmUpReps(WorkoutLogEntry entry, WarmUpRow setRow, int reps) {
+    setRow.reps = reps;
+    notifyListeners();
+  }
+
+  void addWarmUpRow(WorkoutLogEntry entry, WarmUpRow warmUpRow) {
+    entry.warmUpRows.add(warmUpRow);
+    notifyListeners();
+  }
+
+  void addSetRow(WorkoutLogEntry entry, SetRow setRow) {
+    entry.setRows.add(setRow);
+    notifyListeners();
+  }
+
+  void deleteWarmUpRow(WorkoutLogEntry entry, WarmUpRow warmUpRow) {
+    entry.warmUpRows.remove(warmUpRow);
+    notifyListeners();
+  }
+
+  void deleteSetRow(WorkoutLogEntry entry, SetRow setRow) {
+    entry.setRows.remove(setRow);
     notifyListeners();
   }
 }
