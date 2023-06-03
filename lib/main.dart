@@ -71,6 +71,9 @@ class WorkoutLogEntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final workoutLogProvider = Provider.of<WorkoutLogProvider>(context);
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0), // Set the border radius here
+      ),
       margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       color: Color.fromARGB(193, 13, 13, 71),
       child: ListTile(
@@ -145,66 +148,77 @@ class WarmUpList extends StatelessWidget {
       itemCount: warmUpRows.length,
       itemBuilder: (context, index) {
         final warmUpRow = warmUpRows[index];
-        return Slidable(
-          actionPane: SlidableDrawerActionPane(),
-          key: Key('setRow_$index'),
-          dismissal: SlidableDismissal(
-            child: SlidableDrawerDismissal(),
-            onDismissed: (actionType) {
-              // Handle delete action for the set row
-              Provider.of<WorkoutLogProvider>(context, listen: false)
-                  .deleteWarmUpRow(entry, warmUpRow);
-            },
-            dismissThresholds: <SlideActionType, double>{
-              SlideActionType.secondary: 1.0,
-            },
-            onWillDismiss: (actionType) {
-              return false; // Prevent dismissal
-            },
+        return Container(
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.black),)
           ),
-          secondaryActions: [
-            IconSlideAction(
-              caption: 'Delete',
-              color: Colors.red,
-              icon: Icons.delete,
-              onTap: () {
+          child: Slidable(
+            actionPane: SlidableDrawerActionPane(),
+            key: Key('WarmUpRow_$index'),
+            dismissal: SlidableDismissal(
+              child: SlidableDrawerDismissal(),
+              onDismissed: (actionType) {
                 // Handle delete action for the set row
                 Provider.of<WorkoutLogProvider>(context, listen: false)
                     .deleteWarmUpRow(entry, warmUpRow);
               },
+              dismissThresholds: <SlideActionType, double>{
+                SlideActionType.secondary: 1.0,
+              },
+              onWillDismiss: (actionType) {
+                return false; // Prevent dismissal
+              },
             ),
-          ],
-          child: ListTile(
-            leading: Icon(Icons.person),
-            title: Row(
-              children: [
-                const Text('Weight: '),
-                SizedBox(width: 8.0),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: warmUpRow.weight.toString(),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      Provider.of<WorkoutLogProvider>(context, listen: false)
-                          .updateWarmUpWeight(
-                              entry, warmUpRow, double.parse(value));
-                    },
+            secondaryActions: [
+              IconSlideAction(
+                caption: 'Delete',
+                color: Colors.red,
+                icon: Icons.delete,
+                onTap: () {
+                  // Handle delete action for the set row
+                  Provider.of<WorkoutLogProvider>(context, listen: false)
+                      .deleteWarmUpRow(entry, warmUpRow);
+                },
+              ),
+            ],
+            child: ListTile(
+              leading: Icon(Icons.person),
+              title: Row(
+                children: [
+                  const Text('Weight: '),
+                  SizedBox(width: 8.0),
+                  Expanded(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        border: InputBorder.none
+                      ),
+                      initialValue: warmUpRow.weight.toString(),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        Provider.of<WorkoutLogProvider>(context, listen: false)
+                            .updateWarmUpWeight(
+                                entry, warmUpRow, double.parse(value));
+                      },
+                    ),
                   ),
-                ),
-                SizedBox(width: 16.0),
-                Text('Reps: '),
-                SizedBox(width: 8.0),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: warmUpRow.reps.toString(),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      Provider.of<WorkoutLogProvider>(context, listen: false)
-                          .updateWarmUpReps(entry, warmUpRow, int.parse(value));
-                    },
+                  SizedBox(width: 16.0),
+                  Text('Reps: '),
+                  SizedBox(width: 8.0),
+                  Expanded(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        border: InputBorder.none
+                      ),
+                      initialValue: warmUpRow.reps.toString(),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        Provider.of<WorkoutLogProvider>(context, listen: false)
+                            .updateWarmUpReps(entry, warmUpRow, int.parse(value));
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -245,35 +259,59 @@ class SetList extends StatelessWidget {
             },
           ),
           child: ListTile(
-            leading: Text('Set ${setRow.setNumber}'),
-            title: Row(
-              children: [
-                Text('Weight: '),
-                SizedBox(width: 8.0),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: setRow.weight.toString(),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      Provider.of<WorkoutLogProvider>(context, listen: false)
-                          .updateWeight(entry, setRow, double.parse(value));
-                    },
+            leading: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Color.fromARGB(255, 63, 21, 131),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: <BoxShadow>[
+                              BoxShadow(
+                                  color: Color.fromARGB(255, 10, 2, 54).withOpacity(1),
+                                  offset: Offset(2, 2),
+                                  blurRadius: 10.0),
+                            ],
+              ),
+              child: Text('${setRow.setNumber}', style: TextStyle(fontWeight: FontWeight.bold),)),
+            title: Container(
+              decoration: BoxDecoration(
+                border: Border.all()
+              ),
+              child: Row(
+                children: [
+                  Text('Weight: '),
+                  SizedBox(width: 8.0),
+                  Expanded(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                          border: InputBorder.none
+                        ),
+                      initialValue: setRow.weight.toString(),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        Provider.of<WorkoutLogProvider>(context, listen: false)
+                            .updateWeight(entry, setRow, double.parse(value));
+                      },
+                    ),
                   ),
-                ),
-                SizedBox(width: 16.0),
-                Text('Reps: '),
-                SizedBox(width: 8.0),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: setRow.reps.toString(),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      Provider.of<WorkoutLogProvider>(context, listen: false)
-                          .updateReps(entry, setRow, int.parse(value));
-                    },
+                  SizedBox(width: 16.0),
+                  Text('Reps: '),
+                  SizedBox(width: 8.0),
+                  Expanded(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                          border: InputBorder.none
+                        ),
+                      initialValue: setRow.reps.toString(),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        Provider.of<WorkoutLogProvider>(context, listen: false)
+                            .updateReps(entry, setRow, int.parse(value));
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           secondaryActions: [
